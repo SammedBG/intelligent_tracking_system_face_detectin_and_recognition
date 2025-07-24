@@ -1,0 +1,10 @@
+opencv-python
+numpy
+yaml
+insightface
+ultralytics
+mediapipe
+pillow
+tqdm
+tk
+sqlite3 

@@ -1,0 +1,16 @@
+face_detector:
+  model_path: "models/yolov8n-face.pt"
+  confidence_threshold: 0.5
+  image_size: 640
+face_recognition:
+  embeddings_path: "data/embeddings.json"
+  similarity_threshold: 0.7
+  insightface_root: "arcface_model"
+  insightface_provider: "CPUExecutionProvider"
+
+attribute_extraction:
+  use_mediapipe: true
+
+logging:
+  log_file: "logs/app.log"
+  level: "INFO"
