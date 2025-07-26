@@ -10,13 +10,10 @@ from intelligent_tracking_system.face_recognition_copy import FaceRecognizer
 from intelligent_tracking_system.attribute_extraction.extractor import AttributeExtractor
 from database.sqlite_db import SQLiteDB
 from intelligent_tracking_system.utils import iou
-import numpy as np
 
 LOG_PATH = "logs/app.log"
 DETECTIONS_PATH = "data/detections.json"
 CONFIG_PATH = "config.yaml"
-
-UNKNOWN_EMBEDDINGS_PATH = "data/unknown_embeddings.json"
 
 class TrackingApp:
     def __init__(self, config: dict):
@@ -45,9 +42,6 @@ class TrackingApp:
         self.tracked_people = {} # Stores data for recognized people being tracked
         self.TRACK_IOU_THRESHOLD = 0.4
         self.TRACK_DISAPPEAR_SECONDS = 5.0
-        self.unknown_embeddings = []  # List of dicts: {"id": str, "embedding": list}
-        self.unknown_counter = 1
-        self._load_unknown_embeddings()
 
 
         signal.signal(signal.SIGINT, self.stop)
@@ -56,52 +50,6 @@ class TrackingApp:
     def stop(self, signum, frame):
         self.logger.info("Signal received, stopping...")
         self._running = False
-
-    def _load_unknown_embeddings(self):
-        import os, json
-        if os.path.exists(UNKNOWN_EMBEDDINGS_PATH):
-            with open(UNKNOWN_EMBEDDINGS_PATH, "r") as f:
-                data = json.load(f)
-                self.unknown_embeddings = data.get("embeddings", [])
-                self.unknown_counter = data.get("counter", len(self.unknown_embeddings) + 1)
-        else:
-            self.unknown_embeddings = []
-            self.unknown_counter = 1
-
-    def _save_unknown_embeddings(self):
-        import json
-        with open(UNKNOWN_EMBEDDINGS_PATH, "w") as f:
-            json.dump({
-                "embeddings": self.unknown_embeddings,
-                "counter": self.unknown_counter
-            }, f, indent=2)
-
-    def _find_or_add_unknown(self, emb, threshold=0.6):
-        # emb: numpy array
-        if not self.unknown_embeddings:
-            unknown_id = f"Unknown_{self.unknown_counter}"
-            self.unknown_embeddings.append({"id": unknown_id, "embedding": emb.tolist()})
-            self.unknown_counter += 1
-            self._save_unknown_embeddings()
-            return unknown_id
-        emb = emb / np.linalg.norm(emb)
-        best_id = None
-        best_score = -1
-        for entry in self.unknown_embeddings:
-            stored_emb = np.array(entry["embedding"], dtype=np.float32)
-            stored_emb = stored_emb / np.linalg.norm(stored_emb)
-            score = np.dot(stored_emb, emb)
-            if score > best_score:
-                best_score = score
-                best_id = entry["id"]
-        if best_score >= threshold:
-            return best_id
-        else:
-            unknown_id = f"Unknown_{self.unknown_counter}"
-            self.unknown_embeddings.append({"id": unknown_id, "embedding": emb.tolist()})
-            self.unknown_counter += 1
-            self._save_unknown_embeddings()
-            return unknown_id
 
     def run(self):
         cap = cv2.VideoCapture(0)
@@ -150,16 +98,13 @@ class TrackingApp:
                         if iou(box, ibox) > 0.3:
                             emb = getattr(face, "normed_embedding", face.embedding)
                             name, score = self.recognizer.recognize_or_track_unknown(emb)
-                            if name == "Unknown":
-                                # Assign persistent unknown ID
-                                name = self._find_or_add_unknown(emb, threshold=0.6)
                             best_match = (ibox, name, score, face)
                             break
 
                     if best_match:
                         ibox, name, score, face_obj = best_match
-                        if "Unknown" not in name or name.startswith("Unknown_"):
-                            # This is a newly recognized known person or persistent unknown, create a track
+                        if "Unknown" not in name:
+                            # This is a newly recognized known person, create a track
                             attributes = self.attribute_extractor.extract(frame, ibox, face_obj=face_obj)
                             updated_tracks[name] = {
                                 'bbox': ibox,
@@ -168,7 +113,7 @@ class TrackingApp:
                                 'attributes': attributes,
                                 'timestamp': current_time
                             }
-                    # We don't track "Unknown" faces without an ID
+                    # We don't track "Unknown" faces with this logic
 
             # 3. Update master tracker, filtering out stale tracks
             self.tracked_people = {
@@ -209,7 +154,6 @@ class TrackingApp:
 
         self.detector.close()
         self.db.close()
-        self._save_unknown_embeddings()
         self.logger.info("Shutdown complete.")
 
 def load_config(path: str):

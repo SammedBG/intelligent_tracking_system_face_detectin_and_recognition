@@ -23,7 +23,7 @@ class FaceDetector:
                 y1 = int(min(ys) * h)
                 x2 = int(max(xs) * w)
                 y2 = int(max(ys) * h)
-            boxes.append((x1, y1, x2, y2))
+                boxes.append((x1, y1, x2, y2))
         return boxes
 
     def close(self):

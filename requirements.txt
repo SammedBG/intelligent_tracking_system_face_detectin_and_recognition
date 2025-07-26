@@ -8,3 +8,32 @@ pillow
 tqdm
 tk
 sqlite3 
+
+
+
+
+
+
+
+
+I want to implement MediaPipe's multi-class segmentation to segment clothing (e.g., shirt, jacket, hoodie, kurta) in real time using Python.
+
+Use the `selfie_multiclass_256x256.tflite` model from MediaPipe which provides per-pixel segmentation for classes like:
+- clothes
+- face-skin
+- body-skin
+- hair
+- background
+
+Give me a complete Python script that:
+1. Loads the `selfie_multiclass_256x256.tflite` model.
+2. Runs segmentation on webcam input using `tflite-runtime` or TensorFlow Lite.
+3. Extracts and highlights the clothing region (class: clothes) in real time.
+4. Optionally crops the shirt/upper body region based on the mask and saves it for person re-identification across multiple cameras.
+5. Displays the segmentation overlay and cropped clothing ROI side by side.
+
+Also include:
+- Any required packages
+- A direct link to download the model
+- A short explanation of how the clothes mask is extracted
+first clear all the privios attribute exraction modlel and updet with the above and don not make any changes in the remaining scripts and also update the db according to the new atribyte extraction
