@@ -155,3 +155,4 @@ data/*.faiss
 arcface_model/models/antelopev2/*.onnx
 models/*.onnx
 data/
+resnet18_epoch_20.pth
