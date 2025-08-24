@@ -16,8 +16,6 @@ class SQLiteDB:
             timestamp TEXT,
             name TEXT,
             similarity REAL,
-            age INTEGER,
-            gender TEXT,
             glasses BOOLEAN,
             face_mask BOOLEAN,
             shirt_color TEXT,
@@ -34,17 +32,15 @@ class SQLiteDB:
     def insert_detection(self, name, score, attributes, bbox, event_type):
         query = """
         INSERT INTO detections (
-            timestamp, name, similarity, age, gender,
-            glasses, face_mask, shirt_color, clothing_type, -- hair_length,
+            timestamp, name, similarity, glasses, face_mask,
+            shirt_color, clothing_type, -- hair_length,
             uniqueness_signature, bbox, event_type
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         values = (
             attributes.get("timestamp", datetime.now().isoformat()),
             name,
             score,
-            attributes.get("age"),
-            attributes.get("gender"),
             int(attributes.get("glasses", False)),
             int(attributes.get("face_mask", False)),
             attributes.get("shirt_color"),
@@ -63,8 +59,6 @@ class SQLiteDB:
         UPDATE detections SET
             timestamp = ?,
             similarity = ?,
-            age = ?,
-            gender = ?,
             glasses = ?,
             face_mask = ?,
             shirt_color = ?,
@@ -80,8 +74,6 @@ class SQLiteDB:
         values = (
             attributes.get("timestamp", datetime.now().isoformat()),
             score,
-            attributes.get("age"),
-            attributes.get("gender"),
             int(attributes.get("glasses", False)),
             int(attributes.get("face_mask", False)),
             attributes.get("shirt_color"),

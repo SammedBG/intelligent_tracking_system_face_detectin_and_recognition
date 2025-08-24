@@ -10,6 +10,7 @@ from intelligent_tracking_system.face_recognition_copy import FaceRecognizer
 from intelligent_tracking_system.attribute_extraction.extractor import AttributeExtractor
 from database.sqlite_db import SQLiteDB
 from intelligent_tracking_system.utils import iou
+from intelligent_tracking_system.unknown_tracker import UnknownFaceTracker
 
 LOG_PATH = "logs/app.log"
 DETECTIONS_PATH = "data/detections.json"
@@ -37,6 +38,7 @@ class TrackingApp:
 
         self.attribute_extractor = AttributeExtractor()
         self.db = SQLiteDB()
+        self.unknown_tracker = UnknownFaceTracker()
         self.detections = []
         self._running = True
         self.tracked_people = {} # Stores data for recognized people being tracked
@@ -98,14 +100,15 @@ class TrackingApp:
                         if iou(box, ibox) > 0.3:
                             emb = getattr(face, "normed_embedding", face.embedding)
                             name, score = self.recognizer.recognize_or_track_unknown(emb)
-                            best_match = (ibox, name, score, face)
-                            break
-
-                    if best_match:
-                        ibox, name, score, face_obj = best_match
-                        if "Unknown" not in name:
-                            # This is a newly recognized known person, create a track
-                            attributes = self.attribute_extractor.extract(frame, ibox, face_obj=face_obj)
+                            
+                            # If not recognized, use unknown tracker
+                            if "Unknown" in name:
+                                unknown_id, unknown_score = self.unknown_tracker.find_or_create_unknown_id(emb)
+                                name = unknown_id
+                                score = unknown_score
+                            
+                            # Track both known and unknown faces
+                            attributes = self.attribute_extractor.extract(frame, ibox, face_obj=face)
                             updated_tracks[name] = {
                                 'bbox': ibox,
                                 'name': name,
@@ -113,7 +116,8 @@ class TrackingApp:
                                 'attributes': attributes,
                                 'timestamp': current_time
                             }
-                    # We don't track "Unknown" faces with this logic
+                            best_match = (ibox, name, score, face)
+                            break
 
             # 3. Update master tracker, filtering out stale tracks
             self.tracked_people = {
@@ -127,14 +131,19 @@ class TrackingApp:
                 score = track_data.get('score', 0.0)
                 attributes = track_data['attributes']
 
-                # Draw
-                color = (0, 255, 0)
+                # Draw with different colors for known vs unknown
+                if "Unknown" in name:
+                    color = (0, 0, 255)  # Red for unknown
+                    event_type = "unknown"
+                else:
+                    color = (0, 255, 0)  # Green for known
+                    event_type = "recognized"
+                
                 cv2.rectangle(frame, (ibox[0], ibox[1]), (ibox[2], ibox[3]), color, 2)
                 cv2.putText(frame, f"{name} {score:.2f}", (ibox[0], ibox[1] - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                 
                 # Update DB
-                event_type = "recognized"
                 if name not in inserted_names:
                     self.db.insert_detection(name, score, attributes, ibox, event_type)
                     inserted_names.add(name)

@@ -12,7 +12,16 @@ def main():
     app = FaceAnalysis(name='antelopev2', root='arcface_model', providers=['CPUExecutionProvider'])
     app.prepare(ctx_id=0, det_size=(640, 640))
 
-    embeddings_data = []
+    # Load existing embeddings if file exists
+    if os.path.exists(PROFILE_JSON):
+        with open(PROFILE_JSON, "r") as f:
+            existing_data = json.load(f)
+    else:
+        existing_data = []
+    existing_dict = {entry["name"]: entry for entry in existing_data}
+
+    embeddings_data = existing_data.copy()
+    updated_names = set()
 
     for person_name in os.listdir(EMP_DIR):
         person_path = os.path.join(EMP_DIR, person_name)
@@ -40,12 +49,24 @@ def main():
         if embeddings:
             mean_emb = np.mean(embeddings, axis=0)
             mean_emb = mean_emb / np.linalg.norm(mean_emb)  # Normalize mean embedding
-            embeddings_data.append({
+            new_entry = {
                 "name": person_name,
                 "embedding": mean_emb.tolist()
-            })
+            }
+            # Update if exists, else append
+            if person_name in existing_dict:
+                for i, entry in enumerate(embeddings_data):
+                    if entry["name"] == person_name:
+                        embeddings_data[i] = new_entry
+                        break
+            else:
+                embeddings_data.append(new_entry)
+            updated_names.add(person_name)
         else:
             print(f"[WARN] No embeddings for {person_name}")
+
+    # Optionally, keep entries for people not in EMP_DIR
+    # embeddings_data = [entry for entry in embeddings_data if entry["name"] in updated_names]
 
     with open(PROFILE_JSON, "w") as f:
         json.dump(embeddings_data, f, indent=4)

@@ -4,7 +4,7 @@ face_detector:
   image_size: 640
 face_recognition:
   embeddings_path: "data/embeddings.json"
-  similarity_threshold: 0.6
+  similarity_threshold: 0.7
   insightface_root: "arcface_model"
   insightface_provider: "CPUExecutionProvider"
 

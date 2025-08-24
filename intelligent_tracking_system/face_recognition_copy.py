@@ -5,7 +5,7 @@ from insightface.app import FaceAnalysis
 from intelligent_tracking_system.utils import cosine_similarity
 
 class FaceRecognizer:
-    def __init__(self, embeddings_path, insightface_root, insightface_provider, similarity_threshold=0.6, logger=None):
+    def __init__(self, embeddings_path, insightface_root, insightface_provider, similarity_threshold=0.7, logger=None):
         self.logger = logger
         self.similarity_threshold = similarity_threshold
 
