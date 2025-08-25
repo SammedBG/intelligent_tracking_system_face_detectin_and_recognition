@@ -15,7 +15,7 @@ A modular face recognition and tracking system using deep learning models for de
 ## Setup
 1. **Clone the repository:**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/SammedBG/intelligent_tracking_system_face_detectin_and_recognition.git
    cd intelligent_tracking_system
    ```
 2. **Install dependencies:**
